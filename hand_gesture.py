@@ -53,6 +53,7 @@ while True:
 
     # post process the result
     if result.multi_hand_landmarks:
+        print(str(result.multi_hand_landmarks))
         landmarks = []
         for handslms in result.multi_hand_landmarks:
             for lm in handslms.landmark:

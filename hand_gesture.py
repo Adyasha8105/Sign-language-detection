@@ -1,9 +1,12 @@
+from pydoc import classname
 import cv2
 import numpy as np
 import mediapipe as mp
 import tensorflow as tf
 from tensorflow.keras.models import load_model
 import socket
+import struct
+import pickle
 
 # initialize mediapipe
 mpHands = mp.solutions.hands
@@ -19,6 +22,8 @@ classNames = f.read().split('\n')
 f.close()
 print(classNames)
 
+clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+clientsocket.connect(('localhost', 9000))
 
 # Initialize the webcam
 cap = cv2.VideoCapture(0)
@@ -26,6 +31,11 @@ cap = cv2.VideoCapture(0)
 while True:
     # Read each frame from the webcam
     _, frame = cap.read()
+
+    # Sending frames over to the server
+    # data = pickle.dumps(frame)
+    # clientsocket.sendall(struct.pack("s", data))
+    
 
     x, y, c = frame.shape
 
@@ -36,7 +46,8 @@ while True:
     # Get hand landmark prediction
     result = hands.process(framergb)
 
-    # print(result)
+    # prints the object containing x, y and z coordinates of the hand
+    # print(result.multi_hand_landmarks)
     
     className = ''
 
@@ -56,13 +67,16 @@ while True:
 
             # Predict gesture
             prediction = model.predict([landmarks])
-            # print(prediction)
             classID = np.argmax(prediction)
+            # className -> the predicted hand sign (text)
             className = classNames[classID]
+            if len(className) > 0: 
+                clientsocket.send(className.encode())
 
     # show the prediction on the frame
     cv2.putText(frame, className, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 
                    1, (0,0,255), 2, cv2.LINE_AA)
+    # print(className)
 
     # Show the final output
     cv2.imshow("Output", frame) 
